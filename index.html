@@ -5,10 +5,12 @@
 <title>Milk Diary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ===== Firebase SDK ===== -->
+<!-- Firebase SDK -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { initializeApp } from 
+"https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, get, set } from 
+"https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCHQqBRiM6RRAE7CCfbp2spxXUt65QxGPs",
@@ -23,132 +25,169 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ===== Unlock Function =====
-window.unlockApp = function() {
-  const enteredPwd = document.getElementById("unlockPwd").value;
-  const dbRef = ref(db, "lockPassword");
+// Generate or load device ID
+function getDeviceId(){
+  let id = localStorage.getItem("deviceId");
+  if(!id){
+    id = "DEV-" + Math.random().toString(36).substr(2,9);
+    localStorage.setItem("deviceId", id);
+  }
+  return id;
+}
 
-  get(dbRef).then((snapshot)=>{
-    if(snapshot.exists()){
-      const realPwd = snapshot.val();
-      if(enteredPwd === realPwd){
-        document.getElementById("lockScreen").style.display="none";
-        document.getElementById("mainApp").style.display="block";
-      } else {
-        alert("❌ Wrong Password");
-      }
-    } else {
-      alert("Password not found in server");
+// Unlock function
+window.unlockApp = function(){
+
+  const custId = document.getElementById("custId").value.trim();
+  const pwd = document.getElementById("unlockPwd").value.trim();
+  const devId = getDeviceId();
+
+  if(custId=="" || pwd==""){
+    alert("Enter Customer ID & Password");
+    return;
+  }
+
+  const baseRef = ref(db, "customers/" + custId);
+
+  get(baseRef).then((snap)=>{
+    if(!snap.exists()){
+      alert("Customer not found");
+      return;
     }
+
+    const data = snap.val();
+
+    // Password check
+    if(data.password !== pwd){
+      alert("❌ Wrong Password");
+      return;
+    }
+
+    // Device Lock Check
+    if(data.deviceId === ""){
+        set(ref(db,"customers/"+custId+"/deviceId"), devId);
+    }
+    else if(data.deviceId !== devId){
+        alert("❌ This account already used on another phone");
+        return;
+    }
+
+    // Load Bill
+    loadBill(data.bill);
+
+    document.getElementById("lockScreen").style.display="none";
+    document.getElementById("mainApp").style.display="block";
   });
 }
-</script>
 
-<!-- ===== Styles ===== -->
-<style>
-body{font-family:Arial;margin:0;background:#f2f2f2}
-.center{display:flex;align-items:center;justify-content:center;height:100vh}
-.box{background:#fff;padding:25px;border-radius:10px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 10px #ccc}
-input{width:100%;padding:10px;font-size:16px;margin-top:10px}
-button{border:none;padding:12px;border-radius:6px;font-size:16px;cursor:pointer;margin-top:10px}
-.blue{background:#2196f3;color:#fff;width:100%}
-.green{background:#4caf50;color:#fff;width:100%}
-.gray{background:#999;color:#fff;width:100%}
-.billBox{background:#fff;padding:20px;border-radius:10px;max-width:500px;margin:auto;box-shadow:0 0 10px #ccc}
-pre{white-space:pre-wrap;font-size:15px;text-align:left}
-header{background:#1976d2;color:#fff;padding:15px;text-align:center;font-size:20px;font-weight:bold}
-</style>
+// Build Detailed Bill Format
+function loadBill(b){
 
-</head>
-<body>
+  const dailyTotal = b.dailyPkt * b.days;
+  const finalMilk = dailyTotal + b.extraPkt - b.notSuppliedPkt;
+  const milkAmount = finalMilk * b.milkRate;
+  const grandTotal = milkAmount + b.serviceCharge;
 
-<!-- ===== LOCK SCREEN ===== -->
-<div id="lockScreen" class="center">
-  <div class="box">
-    <h3>🔒 Milk Diary Locked</h3>
-    <input id="unlockPwd" type="password" placeholder="Enter Password">
-    <button class="blue" onclick="unlockApp()">Unlock</button>
-  </div>
-</div>
-
-<!-- ===== MAIN APP AFTER UNLOCK ===== -->
-<div id="mainApp" style="display:none">
-
-<header>MILK DIARY - BILL</header>
-
-<br>
-
-<div class="billBox" id="billContent">
-<pre>
+  const billText = `
 MILK DIARY BILL
 
 Plot / Door No:
-G202
+${b.doorNo}
 
 Address:
-Tudor
+${b.address}
 
 Period:
-01/01/2026  to  31/01/2026
+${b.periodFrom}  to  ${b.periodTo}
 
 --------------------------------
 
 Daily Milk:
-2 pkt × 31 days = 62 pkt
+${b.dailyPkt} pkt × ${b.days} days = ${dailyTotal} pkt
 
 Extra Milk:
-Nil
-Total Extra: 0 pkt
+${b.extraPkt == 0 ? "Nil" : b.extraPkt + " pkt"}
+Total Extra: ${b.extraPkt} pkt
 
 Not Supplied:
-04/01/2026 : 2 pkt
+${b.notSuppliedDate} : ${b.notSuppliedPkt} pkt
 
-Total Not Supplied: 2 pkt
+Total Not Supplied: ${b.notSuppliedPkt} pkt
 
 --------------------------------
 
 Final Milk:
-62 + 0 - 2 = 60 pkt
+${dailyTotal} + ${b.extraPkt} - ${b.notSuppliedPkt} = ${finalMilk} pkt
 
 Milk Rate:
-₹23 per pkt
+₹${b.milkRate} per pkt
 
 Milk Amount:
-60 × ₹23 = ₹1380
+${finalMilk} × ₹${b.milkRate} = ₹${milkAmount}
 
 Service Charge:
-₹100
+₹${b.serviceCharge}
 
 --------------------------------
 
 GRAND TOTAL:
-₹1480
+₹${grandTotal}
 
 --------------------------------
 Powered by Milk Diary - iniyan.talkies
-</pre>
+`;
 
-<button class="green" onclick="sendWhatsApp()">📲 Send to Milkman WhatsApp</button>
-<button class="blue" onclick="savePDF()">💾 Save PDF</button>
-<button class="gray" onclick="location.reload()">⬅ Back</button>
-
-</div>
-</div>
-
-<!-- ===== WhatsApp Function ===== -->
-<script>
-function sendWhatsApp(){
-  let text = document.querySelector("#billContent pre").innerText;
-  window.open("https://wa.me/?text=" + encodeURIComponent(text));
+document.getElementById("billText").innerText = billText;
 }
 </script>
 
-<!-- ===== PDF Save ===== -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0}
+.center{display:flex;align-items:center;justify-content:center;height:100vh}
+.box{background:#fff;padding:25px;border-radius:10px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 10px #ccc}
+input{width:100%;padding:10px;margin-top:10px;font-size:16px}
+button{padding:12px;border:none;border-radius:6px;margin-top:10px;width:100%;font-size:16px}
+.blue{background:#2196f3;color:#fff}
+.green{background:#4caf50;color:#fff}
+.gray{background:#999;color:#fff}
+.billBox{background:#fff;padding:20px;border-radius:10px;max-width:520px;margin:auto;box-shadow:0 0 10px #ccc}
+pre{white-space:pre-wrap;font-size:15px}
+header{background:#1976d2;color:#fff;padding:15px;text-align:center;font-size:20px;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" class="center">
+  <div class="box">
+    <h3>🔒 Milk Diary Login</h3>
+    <input id="custId" placeholder="Customer ID (ex: CUST001)">
+    <input id="unlockPwd" type="password" placeholder="Password">
+    <button class="blue" onclick="unlockApp()">Unlock</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+
+<header>MILK DIARY - BILL</header>
+<br>
+
+<div class="billBox" id="billContent">
+<pre id="billText"></pre>
+
+<button class="green" onclick="sendWhatsApp()">📲 Send to WhatsApp</button>
+<button class="gray" onclick="location.reload()">⬅ Logout</button>
+
+</div>
+</div>
+
+<!-- WhatsApp -->
 <script>
-function savePDF(){
-  const element = document.getElementById("billContent");
-  html2pdf().from(element).save("MilkDiaryBill.pdf");
+function sendWhatsApp(){
+  let text = document.getElementById("billText").innerText;
+  window.open("https://wa.me/?text=" + encodeURIComponent(text));
 }
 </script>
 
