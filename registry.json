@@ -1,5 +1,5 @@
 {
-  "MDP-583204": { "used": false, "device": "" },
+  "MDP-583204": { "used": true, "device": "LOCKED" },
   "MDP-102938": { "used": false, "device": "" },
   "MDP-748392": { "used": false, "device": "" },
   "MDP-619475": { "used": false, "device": "" },
