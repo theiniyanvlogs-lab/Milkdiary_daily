@@ -18,9 +18,9 @@ button,input,textarea{width:100%;padding:12px;margin-top:8px;font-size:16px}
 button{border:none;border-radius:6px}
 .blue{background:#2196f3;color:#fff}
 </style>
+</style>
 </head>
 <body>
-
 <!-- 🔐 LOCK SCREEN -->
 <div id="lockScreen" class="center">
  <div class="box">
@@ -308,7 +308,10 @@ Grand Total:
 function sendToMilkman(){
  window.open("https://wa.me/91"+localStorage.milkman+"?text="+encodeURIComponent(billPreview.innerText));
 }
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
 </script>
-
 </body>
 </html>
