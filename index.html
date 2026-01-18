@@ -3,328 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <title>Milk Diary</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase Realtime Database -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<!-- ===== Firebase SDK ===== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-<script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCHQqBRiM6RRAE7CCfbp2spxXLt650xGPs",
+  apiKey: "AIzaSyCHQqBRiM6RRAE7CCfbp2spxXUt65QxGPs",
   authDomain: "milkdiarylock.firebaseapp.com",
   databaseURL: "https://milkdiarylock-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "milkdiarylock",
-  storageBucket: "milkdiarylock.appspot.com",
+  storageBucket: "milkdiarylock.firebasestorage.app",
   messagingSenderId: "602886268250",
   appId: "1:602886268250:web:b8010e9df56b3164c9bf63"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ===== Unlock Function =====
+window.unlockApp = function() {
+  const enteredPwd = document.getElementById("unlockPwd").value;
+  const dbRef = ref(db, "lockPassword");
+
+  get(dbRef).then((snapshot)=>{
+    if(snapshot.exists()){
+      const realPwd = snapshot.val();
+      if(enteredPwd === realPwd){
+        document.getElementById("lockScreen").style.display="none";
+        document.getElementById("mainApp").style.display="block";
+      } else {
+        alert("❌ Wrong Password");
+      }
+    } else {
+      alert("Password not found in server");
+    }
+  });
+}
 </script>
 
+<!-- ===== Styles ===== -->
 <style>
-body{font-family:Arial;margin:0;background:#f5f5f5}
+body{font-family:Arial;margin:0;background:#f2f2f2}
 .center{display:flex;align-items:center;justify-content:center;height:100vh}
-.box{background:#fff;padding:20px;border-radius:8px;width:100%;max-width:420px;text-align:center}
-.header{background:#fff;padding:12px;text-align:center;font-size:22px;font-weight:bold}
-.badge{float:right;background:#4caf50;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px}
-.month-nav{display:flex;justify-content:space-between;padding:10px;background:#eee}
-.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px}
-.day{background:#ddd;padding:10px;border-radius:6px;text-align:center}
-.day.red{background:#e53935;color:#fff}
-.day.green{background:#43a047;color:#fff}
-.day.blue{background:#1e88e5;color:#fff}
-.day.active{outline:3px solid #000}
-button,input,textarea{width:100%;padding:10px;margin-top:6px;font-size:15px}
-button{border:none;border-radius:6px}
-.blue{background:#2196f3;color:#fff}
-.green{background:#4caf50;color:#fff}
-.red{background:#f44336;color:#fff}
-.grey{background:#9e9e9e;color:#fff}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6)}
-.modal-box{background:#fff;margin:5% auto;padding:15px;width:90%;max-width:500px}
-pre{white-space:pre-wrap}
+.box{background:#fff;padding:25px;border-radius:10px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 10px #ccc}
+input{width:100%;padding:10px;font-size:16px;margin-top:10px}
+button{border:none;padding:12px;border-radius:6px;font-size:16px;cursor:pointer;margin-top:10px}
+.blue{background:#2196f3;color:#fff;width:100%}
+.green{background:#4caf50;color:#fff;width:100%}
+.gray{background:#999;color:#fff;width:100%}
+.billBox{background:#fff;padding:20px;border-radius:10px;max-width:500px;margin:auto;box-shadow:0 0 10px #ccc}
+pre{white-space:pre-wrap;font-size:15px;text-align:left}
+header{background:#1976d2;color:#fff;padding:15px;text-align:center;font-size:20px;font-weight:bold}
 </style>
-</head>
 
+</head>
 <body>
 
-<!-- 🔐 LOCK SCREEN -->
+<!-- ===== LOCK SCREEN ===== -->
 <div id="lockScreen" class="center">
- <div class="box">
-  <h3>Milk Diary – Locked</h3>
-  <input id="unlockPwd" placeholder="Enter Password">
-  <button class="blue" onclick="unlockApp()">Unlock</button>
-  <p id="msg" style="color:red"></p>
- </div>
+  <div class="box">
+    <h3>🔒 Milk Diary Locked</h3>
+    <input id="unlockPwd" type="password" placeholder="Enter Password">
+    <button class="blue" onclick="unlockApp()">Unlock</button>
+  </div>
 </div>
 
-<!-- 📱 APP -->
-<div id="app" style="display:none">
- <div class="header">
-  Milk Diary
-  <span class="badge" id="statusBadge">Active</span>
- </div>
+<!-- ===== MAIN APP AFTER UNLOCK ===== -->
+<div id="mainApp" style="display:none">
 
- <div class="month-nav">
-  <button onclick="changeMonth(-1)">⬅️</button>
-  <b id="monthTitle"></b>
-  <button onclick="changeMonth(1)">➡️</button>
- </div>
+<header>MILK DIARY - BILL</header>
 
- <div class="calendar" id="calendar"></div>
+<br>
 
- <div style="padding:12px">
-  <input id="notQty" placeholder="Not Supplied Qty">
-  <button class="red" onclick="saveNot()">Save Not Supplied</button>
-
-  <input id="extraQty" placeholder="Extra Milk Qty">
-  <button class="green" onclick="saveExtra()">Save Extra Milk</button>
-
-  <hr>
-
-  <input id="fromDate" readonly onclick="setMode('from')" placeholder="From Date">
-  <input id="toDate" readonly onclick="setMode('to')" placeholder="To Date">
-  <button class="blue" onclick="viewPeriodBill()">View Period Bill</button>
-
-  <hr>
-  <button class="blue" onclick="viewMonthBill()">View Final Bill (This Month)</button>
-
-  <button onclick="openAdmin()">⚙ Admin Settings</button>
- </div>
-</div>
-
-<!-- ⚙ ADMIN -->
-<div id="adminModal" class="modal">
- <div class="modal-box">
-  <h3>Admin Settings</h3>
-  <input id="custPlot" placeholder="Plot / Door No">
-  <textarea id="custAddr" placeholder="Address"></textarea>
-  <input id="dailyQty" placeholder="Daily Milk Qty">
-  <input id="rateInput" placeholder="Milk Rate ₹">
-  <input id="serviceInput" placeholder="Service Charge ₹">
-  <input id="milkmanInput" placeholder="Milkman WhatsApp Number">
-  <button class="green" onclick="saveAdmin()">Save</button>
- </div>
-</div>
-
-<!-- 🧾 BILL -->
-<div id="billModal" class="modal">
- <div class="modal-box">
-  <pre id="billPreview"></pre>
-  <button class="green" onclick="sendToMilkman()">Send to Milkman WhatsApp</button>
-  <button class="blue" onclick="window.print()">Save PDF</button>
-  <button class="grey" onclick="billModal.style.display='none'">⬅ Back</button>
- </div>
-</div>
-
-<script>
-/* Device ID */
-let DEVICE_ID = localStorage.MDT_DEVICE;
-if(!DEVICE_ID){
- DEVICE_ID="MDT-"+Math.random().toString(36).slice(2);
- localStorage.MDT_DEVICE=DEVICE_ID;
-}
-
-/* 🔐 Firebase Global Lock */
-function unlockApp(){
- let pwd = unlockPwd.value.trim();
- if(!pwd){msg.innerText="Enter password";return;}
-
- db.ref("passwords/"+pwd).once("value").then(snap=>{
-   let data = snap.val();
-   if(!data){ msg.innerText="Wrong Password"; return; }
-
-   if(!data.device){
-     db.ref("passwords/"+pwd).set({device:DEVICE_ID});
-     startApp(); return;
-   }
-
-   if(data.device===DEVICE_ID){ startApp(); return; }
-
-   msg.innerText="Password already used on another phone";
- });
-}
-
-function startApp(){
- lockScreen.style.display="none";
- app.style.display="block";
- renderCalendar();
-}
-
-/* ===== Milk Data ===== */
-let data = JSON.parse(localStorage.MILK_DATA||"{}");
-let current=new Date(),selectedDate=null,mode=null,from=null,to=null;
-
-function key(d){return d.toISOString().slice(0,10);}
-function fmt(d){return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();}
-
-/* Calendar */
-function renderCalendar(){
- monthTitle.innerText=current.toLocaleString("default",{month:"long",year:"numeric"});
- calendar.innerHTML="";
- let days=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
- for(let i=1;i<=days;i++){
-  let d=new Date(current.getFullYear(),current.getMonth(),i);
-  let k=key(d);
-  let el=document.createElement("div");
-  el.className="day";
-  if(data[k]){
-   if(data[k].not && data[k].extra) el.classList.add("blue");
-   else if(data[k].not) el.classList.add("red");
-   else if(data[k].extra) el.classList.add("green");
-  }
-  el.innerText=i;
-  el.onclick=()=>selectDate(d,el);
-  calendar.appendChild(el);
- }
-}
-function changeMonth(v){current.setMonth(current.getMonth()+v);renderCalendar();}
-function setMode(m){mode=m;}
-
-function selectDate(d,el){
- document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
- el.classList.add("active");
- selectedDate=d;
- let k=key(d);
- notQty.value=data[k]?.not||"";
- extraQty.value=data[k]?.extra||"";
- if(mode==="from"){from=d;fromDate.value=fmt(d)}
- if(mode==="to"){to=d;toDate.value=fmt(d)}
-}
-
-/* Save entries */
-function saveNot(){
- if(!selectedDate)return;
- let k=key(selectedDate);
- data[k]=data[k]||{};
- data[k].not=parseInt(notQty.value)||0;
- localStorage.MILK_DATA=JSON.stringify(data);
- renderCalendar();
-}
-function saveExtra(){
- if(!selectedDate)return;
- let k=key(selectedDate);
- data[k]=data[k]||{};
- data[k].extra=parseInt(extraQty.value)||0;
- localStorage.MILK_DATA=JSON.stringify(data);
- renderCalendar();
-}
-
-/* Admin */
-function openAdmin(){
- custPlot.value=localStorage.custPlot||"";
- custAddr.value=localStorage.custAddr||"";
- dailyQty.value=localStorage.dailyQty||"";
- rateInput.value=localStorage.rate||"";
- serviceInput.value=localStorage.service||"";
- milkmanInput.value=localStorage.milkman||"";
- adminModal.style.display="block";
-}
-function saveAdmin(){
- localStorage.custPlot=custPlot.value;
- localStorage.custAddr=custAddr.value;
- localStorage.dailyQty=dailyQty.value;
- localStorage.rate=rateInput.value;
- localStorage.service=serviceInput.value;
- localStorage.milkman=milkmanInput.value;
- adminModal.style.display="none";
-}
-
-/* ===== EXACT BILL FORMAT ===== */
-function viewMonthBill(){
- let s=new Date(current.getFullYear(),current.getMonth(),1);
- let e=new Date(current.getFullYear(),current.getMonth()+1,0);
- buildBill(s,e);
-}
-function viewPeriodBill(){
- if(!from||!to){alert("Select dates");return;}
- buildBill(from,to);
-}
-
-function buildBill(s,e){
- let daily=+localStorage.dailyQty||0;
- let rate=+localStorage.rate||0;
- let service=+localStorage.service||0;
- let days=Math.floor((e-s)/86400000)+1;
- let base=daily*days;
-
- let extra=0,notsup=0;
- let extraLines="",notLines="";
-
- for(let k in data){
-  let d=new Date(k);
-  if(d>=s && d<=e){
-   if(data[k].extra){
-    extra+=data[k].extra;
-    extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
-   }
-   if(data[k].not){
-    notsup+=data[k].not;
-    notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
-   }
-  }
- }
-
- let finalMilk=base+extra-notsup;
- let milkAmt=finalMilk*rate;
- let total=milkAmt+service;
-
- billPreview.innerText=
-`MILK DIARY BILL
+<div class="billBox" id="billContent">
+<pre>
+MILK DIARY BILL
 
 Plot / Door No:
-${localStorage.custPlot||""}
+G202
 
 Address:
-${localStorage.custAddr||""}
+Tudor
 
 Period:
-${fmt(s)}  to  ${fmt(e)}
+01/01/2026  to  31/01/2026
 
 --------------------------------
 
 Daily Milk:
-${daily} pkt × ${days} days = ${base} pkt
+2 pkt × 31 days = 62 pkt
 
 Extra Milk:
-${extraLines||"Nil"}
-Total Extra: ${extra} pkt
+Nil
+Total Extra: 0 pkt
 
 Not Supplied:
-${notLines||"Nil"}
-Total Not Supplied: ${notsup} pkt
+04/01/2026 : 2 pkt
+
+Total Not Supplied: 2 pkt
 
 --------------------------------
 
 Final Milk:
-${base} + ${extra} - ${notsup} = ${finalMilk} pkt
+62 + 0 - 2 = 60 pkt
 
 Milk Rate:
-₹${rate} per pkt
+₹23 per pkt
 
 Milk Amount:
-${finalMilk} × ₹${rate} = ₹${milkAmt}
+60 × ₹23 = ₹1380
 
 Service Charge:
-₹${service}
+₹100
 
 --------------------------------
 
 GRAND TOTAL:
-₹${total}
+₹1480
 
 --------------------------------
-Powered by Milk Diary - iniyan.talkies`;
+Powered by Milk Diary - iniyan.talkies
+</pre>
 
- billModal.style.display="block";
+<button class="green" onclick="sendWhatsApp()">📲 Send to Milkman WhatsApp</button>
+<button class="blue" onclick="savePDF()">💾 Save PDF</button>
+<button class="gray" onclick="location.reload()">⬅ Back</button>
+
+</div>
+</div>
+
+<!-- ===== WhatsApp Function ===== -->
+<script>
+function sendWhatsApp(){
+  let text = document.querySelector("#billContent pre").innerText;
+  window.open("https://wa.me/?text=" + encodeURIComponent(text));
 }
+</script>
 
-function sendToMilkman(){
- let num=localStorage.milkman||"";
- if(!num){alert("Enter milkman number in admin");return;}
- window.open("https://wa.me/91"+num+"?text="+encodeURIComponent(billPreview.innerText));
+<!-- ===== PDF Save ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function savePDF(){
+  const element = document.getElementById("billContent");
+  html2pdf().from(element).save("MilkDiaryBill.pdf");
 }
 </script>
 
