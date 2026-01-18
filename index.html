@@ -131,7 +131,7 @@ async function unlockApp(){
  }
 
  // Load registry
- let registry = await fetch(REGISTRY_URL).then(r=>r.json());
+ let registry = await fetch(REGISTRY_URL + "?t=" + Date.now()).then(r=>r.json());
 
  // Invalid password
  if(!registry[pwd]) return alert("Invalid Password");
