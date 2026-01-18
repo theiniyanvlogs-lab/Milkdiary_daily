@@ -5,6 +5,10 @@
 <title>Milk Diary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2196f3">
+
 <style>
 body{font-family:Arial;margin:0;background:#f5f5f5}
 .center{display:flex;align-items:center;justify-content:center;height:100vh;padding:20px}
@@ -27,6 +31,7 @@ button{border:none;border-radius:6px}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999}
 .modal-box{background:#fff;margin:5% auto;padding:15px;width:90%;max-height:80%;overflow:auto}
 .small{font-size:13px;color:#555}
+
 @media print{
  body *{visibility:hidden}
  #printArea,#printArea *{visibility:visible}
@@ -104,7 +109,7 @@ button{border:none;border-radius:6px}
   <div id="printArea"><pre id="billPreview"></pre></div>
   <button class="green" onclick="sendToMilkman()">Send to Milkman WhatsApp</button>
   <button class="blue" onclick="window.print()">Save PDF</button>
-  <button class="grey" onclick="billModal.style.display='none'">⬅️ Back to Milk Entry</button>
+  <button class="grey" onclick="billModal.style.display='none'">⬅️ Back</button>
  </div>
 </div>
 
@@ -154,7 +159,7 @@ function unlockApp(){
 
 function requestPassword(){
  window.open("https://wa.me/"+ADMIN_WHATSAPP+"?text="+encodeURIComponent(
-  "Hello,\nI need Milk Diary password.\n\nDevice ID: "+DEVICE_ID
+  "Hello,\nI need Milk Diary password.\nDevice ID: "+DEVICE_ID
  ));
 }
 
@@ -187,6 +192,7 @@ function renderCalendar(){
 }
 function changeMonth(v){current.setMonth(current.getMonth()+v);renderCalendar();}
 function setMode(m){mode=m;}
+
 function selectDate(d,el){
  document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
  el.classList.add("active");
@@ -261,12 +267,12 @@ function buildBill(s,e){
   let d=new Date(k);
   if(d>=s && d<=e){
    if(data[k].extra){
-    extra+=data[k].extra;
-    extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
+     extra+=data[k].extra;
+     extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
    }
    if(data[k].not){
-    not+=data[k].not;
-    notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
+     not+=data[k].not;
+     notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
    }
   }
  }
@@ -275,54 +281,64 @@ function buildBill(s,e){
  let milkAmt=finalMilk*rate;
  let total=milkAmt+service;
 
- billPreview.innerText=
-`Milk Bill Details
+ billPreview.innerText =
+`MILK DIARY BILL
 
-Plot No. ${localStorage.custPlot||""}
-${localStorage.custAddr||""}
+Plot / Door No:
+${localStorage.custPlot || ""}
+
+Address:
+${localStorage.custAddr || ""}
 
 Period:
-${fmt(s)} to ${fmt(e)}
+${fmt(s)}  to  ${fmt(e)}
+
+--------------------------------
 
 Daily Milk:
 ${daily} pkt × ${days} days = ${base} pkt
 
-Extra Milk Purchased:
+Extra Milk:
 ${extraLines || "Nil"}
-                        ----------
-                          ${extra} pkt
-                        ----------
+Total Extra: ${extra} pkt
 
-Not Supplied Milk:
+Not Supplied:
 ${notLines || "Nil"}
-                        ----------
-                          ${not} pkt
-                        ----------
+Total Not Supplied: ${not} pkt
 
---------------------
-Total Milk:
+--------------------------------
+
+Final Milk:
 ${base} + ${extra} - ${not} = ${finalMilk} pkt
 
 Milk Rate:
 ₹${rate} per pkt
 
 Milk Amount:
-${finalMilk} × ${rate} = ₹${milkAmt}
+${finalMilk} × ₹${rate} = ₹${milkAmt}
 
-Service Charge (One Time):
+Service Charge:
 ₹${service}
 
---------------------
-Grand Total:
+--------------------------------
+
+GRAND TOTAL:
 ₹${total}
 
-- Powered by Milk Diary iniyan.talkies`;
+--------------------------------
+Powered by Milk Diary - iniyan.talkies`;
 
  billModal.style.display="block";
 }
 
+/* ================= WHATSAPP ================= */
 function sendToMilkman(){
  window.open("https://wa.me/91"+localStorage.milkman+"?text="+encodeURIComponent(billPreview.innerText));
+}
+
+/* ================= SERVICE WORKER ================= */
+if("serviceWorker" in navigator){
+ navigator.serviceWorker.register("sw.js");
 }
 </script>
 
