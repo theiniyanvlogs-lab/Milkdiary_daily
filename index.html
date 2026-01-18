@@ -5,38 +5,46 @@
 <title>Milk Diary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- PWA Manifest -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2196f3">
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCHQqBRiM6RRAE7CCfbp2spxXLt650xGPs",
+  authDomain: "milkdiarylock.firebaseapp.com",
+  databaseURL: "https://milkdiarylock-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "milkdiarylock",
+  storageBucket: "milkdiarylock.appspot.com",
+  messagingSenderId: "602886268250",
+  appId: "1:602886268250:web:b8010e9df56b3164c9bf63"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
 
 <style>
 body{font-family:Arial;margin:0;background:#f5f5f5}
-.center{display:flex;align-items:center;justify-content:center;height:100vh;padding:20px}
+.center{display:flex;align-items:center;justify-content:center;height:100vh}
 .box{background:#fff;padding:20px;border-radius:8px;width:100%;max-width:420px;text-align:center}
-.header{background:#fff;padding:12px;text-align:center;font-size:22px;font-weight:bold;position:relative}
-.badge{position:absolute;right:10px;top:10px;background:#ff9800;color:#fff;padding:4px 10px;border-radius:15px;font-size:12px}
-button,input,textarea{width:100%;padding:12px;margin-top:8px;font-size:16px}
+.header{background:#fff;padding:12px;text-align:center;font-size:22px;font-weight:bold}
+.badge{float:right;background:#4caf50;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px}
+.month-nav{display:flex;justify-content:space-between;padding:10px;background:#eee}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px}
+.day{background:#ddd;padding:10px;border-radius:6px;text-align:center}
+.day.red{background:#e53935;color:#fff}
+.day.green{background:#43a047;color:#fff}
+.day.blue{background:#1e88e5;color:#fff}
+.day.active{outline:3px solid #000}
+button,input,textarea{width:100%;padding:10px;margin-top:6px;font-size:15px}
 button{border:none;border-radius:6px}
 .blue{background:#2196f3;color:#fff}
 .green{background:#4caf50;color:#fff}
 .red{background:#f44336;color:#fff}
 .grey{background:#9e9e9e;color:#fff}
-.month-nav{display:flex;justify-content:space-between;padding:10px;background:#eee}
-.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:10px}
-.day{background:#ddd;padding:12px;border-radius:6px;text-align:center}
-.day.red{background:#e53935;color:#fff}
-.day.green{background:#43a047;color:#fff}
-.day.blue{background:#1e88e5;color:#fff}
-.day.active{outline:3px solid #000}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999}
-.modal-box{background:#fff;margin:5% auto;padding:15px;width:90%;max-height:80%;overflow:auto}
-.small{font-size:13px;color:#555}
-
-@media print{
- body *{visibility:hidden}
- #printArea,#printArea *{visibility:visible}
- #printArea{position:absolute;left:0;top:0;width:100%}
-}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6)}
+.modal-box{background:#fff;margin:5% auto;padding:15px;width:90%;max-width:500px}
+pre{white-space:pre-wrap}
 </style>
 </head>
 
@@ -48,8 +56,7 @@ button{border:none;border-radius:6px}
   <h3>Milk Diary – Locked</h3>
   <input id="unlockPwd" placeholder="Enter Password">
   <button class="blue" onclick="unlockApp()">Unlock</button>
-  <button class="green" onclick="requestPassword()">Request Password via WhatsApp</button>
-  <p class="small">One password = one phone</p>
+  <p id="msg" style="color:red"></p>
  </div>
 </div>
 
@@ -57,7 +64,7 @@ button{border:none;border-radius:6px}
 <div id="app" style="display:none">
  <div class="header">
   Milk Diary
-  <div class="badge" id="statusBadge"></div>
+  <span class="badge" id="statusBadge">Active</span>
  </div>
 
  <div class="month-nav">
@@ -68,24 +75,23 @@ button{border:none;border-radius:6px}
 
  <div class="calendar" id="calendar"></div>
 
- <div style="padding:15px">
-  <button class="blue" onclick="openAdmin()">Admin Settings</button>
-
+ <div style="padding:12px">
   <input id="notQty" placeholder="Not Supplied Qty">
-  <button class="red" onclick="saveNot()">Save / Update Not Supplied</button>
+  <button class="red" onclick="saveNot()">Save Not Supplied</button>
 
   <input id="extraQty" placeholder="Extra Milk Qty">
-  <button class="green" onclick="saveExtra()">Save / Update Extra Milk</button>
+  <button class="green" onclick="saveExtra()">Save Extra Milk</button>
 
   <hr>
 
-  <b>Customer Period Bill</b>
   <input id="fromDate" readonly onclick="setMode('from')" placeholder="From Date">
   <input id="toDate" readonly onclick="setMode('to')" placeholder="To Date">
-  <button class="blue" onclick="viewPeriodBill()">Preview Period Bill</button>
+  <button class="blue" onclick="viewPeriodBill()">View Period Bill</button>
 
   <hr>
   <button class="blue" onclick="viewMonthBill()">View Final Bill (This Month)</button>
+
+  <button onclick="openAdmin()">⚙ Admin Settings</button>
  </div>
 </div>
 
@@ -106,80 +112,64 @@ button{border:none;border-radius:6px}
 <!-- 🧾 BILL -->
 <div id="billModal" class="modal">
  <div class="modal-box">
-  <div id="printArea"><pre id="billPreview"></pre></div>
+  <pre id="billPreview"></pre>
   <button class="green" onclick="sendToMilkman()">Send to Milkman WhatsApp</button>
   <button class="blue" onclick="window.print()">Save PDF</button>
-  <button class="grey" onclick="billModal.style.display='none'">⬅️ Back</button>
+  <button class="grey" onclick="billModal.style.display='none'">⬅ Back</button>
  </div>
 </div>
 
 <script>
-/* ================= SECURITY ================= */
-const TRIAL_PASSWORD="MDT-4829";
-const YEAR1_PASSWORD="MDP-583204";
-const YEAR2_PASSWORD="MDP-102938";
-const ADMIN_WHATSAPP="917200893968";
-
-/* ================= DEVICE ================= */
-let DEVICE_ID=localStorage.MDT_DEVICE;
+/* Device ID */
+let DEVICE_ID = localStorage.MDT_DEVICE;
 if(!DEVICE_ID){
  DEVICE_ID="MDT-"+Math.random().toString(36).slice(2);
  localStorage.MDT_DEVICE=DEVICE_ID;
 }
 
-/* ================= REGISTRY ================= */
-let registry=JSON.parse(localStorage.MDT_REGISTRY||"{}");
-
-/* ================= UNLOCK ================= */
+/* 🔐 Firebase Global Lock */
 function unlockApp(){
- let pwd=unlockPwd.value.trim();
- let type="",days=0;
+ let pwd = unlockPwd.value.trim();
+ if(!pwd){msg.innerText="Enter password";return;}
 
- if(pwd===TRIAL_PASSWORD){type="Trial";days=30;}
- else if(pwd===YEAR1_PASSWORD){type="Paid Year-1";days=365;}
- else if(pwd===YEAR2_PASSWORD){type="Paid Year-2";days=365;}
- else{alert("Wrong password");return;}
+ db.ref("passwords/"+pwd).once("value").then(snap=>{
+   let data = snap.val();
+   if(!data){ msg.innerText="Wrong Password"; return; }
 
- for(let d in registry){
-  if(registry[d].pwd===pwd && d!==DEVICE_ID){
-   alert("Password already used on another phone");
-   return;
-  }
- }
+   if(!data.device){
+     db.ref("passwords/"+pwd).set({device:DEVICE_ID});
+     startApp(); return;
+   }
 
- let exp=new Date(); exp.setDate(exp.getDate()+days);
- registry[DEVICE_ID]={pwd:pwd,type:type,exp:exp.toISOString()};
- localStorage.MDT_REGISTRY=JSON.stringify(registry);
+   if(data.device===DEVICE_ID){ startApp(); return; }
 
+   msg.innerText="Password already used on another phone";
+ });
+}
+
+function startApp(){
  lockScreen.style.display="none";
  app.style.display="block";
- statusBadge.innerText=type+" Active till "+fmt(exp);
  renderCalendar();
 }
 
-function requestPassword(){
- window.open("https://wa.me/"+ADMIN_WHATSAPP+"?text="+encodeURIComponent(
-  "Hello,\nI need Milk Diary password.\nDevice ID: "+DEVICE_ID
- ));
-}
-
-/* ================= DATA ================= */
-let data=JSON.parse(localStorage.MILK_DATA||"{}");
+/* ===== Milk Data ===== */
+let data = JSON.parse(localStorage.MILK_DATA||"{}");
 let current=new Date(),selectedDate=null,mode=null,from=null,to=null;
 
 function key(d){return d.toISOString().slice(0,10);}
 function fmt(d){return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();}
 
-/* ================= CALENDAR ================= */
+/* Calendar */
 function renderCalendar(){
  monthTitle.innerText=current.toLocaleString("default",{month:"long",year:"numeric"});
  calendar.innerHTML="";
  let days=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
  for(let i=1;i<=days;i++){
   let d=new Date(current.getFullYear(),current.getMonth(),i);
+  let k=key(d);
   let el=document.createElement("div");
   el.className="day";
-  let k=key(d);
   if(data[k]){
    if(data[k].not && data[k].extra) el.classList.add("blue");
    else if(data[k].not) el.classList.add("red");
@@ -204,7 +194,7 @@ function selectDate(d,el){
  if(mode==="to"){to=d;toDate.value=fmt(d)}
 }
 
-/* ================= SAVE ================= */
+/* Save entries */
 function saveNot(){
  if(!selectedDate)return;
  let k=key(selectedDate);
@@ -222,7 +212,7 @@ function saveExtra(){
  renderCalendar();
 }
 
-/* ================= ADMIN ================= */
+/* Admin */
 function openAdmin(){
  custPlot.value=localStorage.custPlot||"";
  custAddr.value=localStorage.custAddr||"";
@@ -242,14 +232,14 @@ function saveAdmin(){
  adminModal.style.display="none";
 }
 
-/* ================= BILL ================= */
+/* ===== EXACT BILL FORMAT ===== */
 function viewMonthBill(){
  let s=new Date(current.getFullYear(),current.getMonth(),1);
  let e=new Date(current.getFullYear(),current.getMonth()+1,0);
  buildBill(s,e);
 }
 function viewPeriodBill(){
- if(!from||!to)return alert("Select dates");
+ if(!from||!to){alert("Select dates");return;}
  buildBill(from,to);
 }
 
@@ -260,35 +250,35 @@ function buildBill(s,e){
  let days=Math.floor((e-s)/86400000)+1;
  let base=daily*days;
 
- let extra=0,not=0;
+ let extra=0,notsup=0;
  let extraLines="",notLines="";
 
  for(let k in data){
   let d=new Date(k);
   if(d>=s && d<=e){
    if(data[k].extra){
-     extra+=data[k].extra;
-     extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
+    extra+=data[k].extra;
+    extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
    }
    if(data[k].not){
-     not+=data[k].not;
-     notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
+    notsup+=data[k].not;
+    notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
    }
   }
  }
 
- let finalMilk=base+extra-not;
+ let finalMilk=base+extra-notsup;
  let milkAmt=finalMilk*rate;
  let total=milkAmt+service;
 
- billPreview.innerText =
+ billPreview.innerText=
 `MILK DIARY BILL
 
 Plot / Door No:
-${localStorage.custPlot || ""}
+${localStorage.custPlot||""}
 
 Address:
-${localStorage.custAddr || ""}
+${localStorage.custAddr||""}
 
 Period:
 ${fmt(s)}  to  ${fmt(e)}
@@ -299,17 +289,17 @@ Daily Milk:
 ${daily} pkt × ${days} days = ${base} pkt
 
 Extra Milk:
-${extraLines || "Nil"}
+${extraLines||"Nil"}
 Total Extra: ${extra} pkt
 
 Not Supplied:
-${notLines || "Nil"}
-Total Not Supplied: ${not} pkt
+${notLines||"Nil"}
+Total Not Supplied: ${notsup} pkt
 
 --------------------------------
 
 Final Milk:
-${base} + ${extra} - ${not} = ${finalMilk} pkt
+${base} + ${extra} - ${notsup} = ${finalMilk} pkt
 
 Milk Rate:
 ₹${rate} per pkt
@@ -331,14 +321,10 @@ Powered by Milk Diary - iniyan.talkies`;
  billModal.style.display="block";
 }
 
-/* ================= WHATSAPP ================= */
 function sendToMilkman(){
- window.open("https://wa.me/91"+localStorage.milkman+"?text="+encodeURIComponent(billPreview.innerText));
-}
-
-/* ================= SERVICE WORKER ================= */
-if("serviceWorker" in navigator){
- navigator.serviceWorker.register("sw.js");
+ let num=localStorage.milkman||"";
+ if(!num){alert("Enter milkman number in admin");return;}
+ window.open("https://wa.me/91"+num+"?text="+encodeURIComponent(billPreview.innerText));
 }
 </script>
 
