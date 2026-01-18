@@ -10,17 +10,41 @@
 
 <style>
 body{font-family:Arial;margin:0;background:#f5f5f5}
+
+/* Layout */
 .center{display:flex;align-items:center;justify-content:center;height:100vh;padding:20px}
 .box{background:#fff;padding:20px;border-radius:8px;width:100%;max-width:420px;text-align:center}
-.header{background:#fff;padding:12px;text-align:center;font-size:22px;font-weight:bold}
-.badge{position:absolute;right:10px;top:10px;background:#ff9800;color:#fff;padding:4px 10px}
+.header{background:#fff;padding:12px;text-align:center;font-size:22px;font-weight:bold;position:relative}
+.badge{position:absolute;right:10px;top:10px;background:#ff9800;color:#fff;padding:4px 10px;border-radius:4px}
+
+/* Buttons */
 button,input,textarea{width:100%;padding:12px;margin-top:8px;font-size:16px}
-button{border:none;border-radius:6px}
+button{border:none;border-radius:6px;cursor:pointer}
 .blue{background:#2196f3;color:#fff}
-</style>
+.green{background:#4CAF50;color:#fff}
+.red{background:#f44336;color:#fff}
+.grey{background:#9e9e9e;color:#fff}
+
+/* Calendar */
+.month-nav{text-align:center;padding:10px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:10px}
+.day{background:#fff;padding:10px;border-radius:4px;text-align:center}
+.day.active{outline:2px solid #2196f3}
+.day.red{background:#ffcdd2}
+.day.green{background:#c8e6c9}
+.day.blue{background:#bbdefb}
+
+/* Modal */
+.modal{display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4)}
+.modal-box{background:#fff;margin:50px auto;padding:20px;border-radius:8px;max-width:420px}
+
+/* Small text */
+.small{font-size:13px;color:#555}
 </style>
 </head>
+
 <body>
+
 <!-- 🔐 LOCK SCREEN -->
 <div id="lockScreen" class="center">
  <div class="box">
@@ -34,6 +58,7 @@ button{border:none;border-radius:6px}
 
 <!-- 📱 APP -->
 <div id="app" style="display:none">
+
  <div class="header">
   Milk Diary
   <div class="badge" id="statusBadge"></div>
@@ -85,14 +110,15 @@ button{border:none;border-radius:6px}
 <!-- 🧾 BILL -->
 <div id="billModal" class="modal">
  <div class="modal-box">
-  <div id="printArea"><pre id="billPreview"></pre></div>
+  <pre id="billPreview"></pre>
   <button class="green" onclick="sendToMilkman()">Send to Milkman WhatsApp</button>
   <button class="blue" onclick="window.print()">Save PDF</button>
-  <button class="grey" onclick="billModal.style.display='none'">⬅️ Back to Milk Entry</button>
+  <button class="grey" onclick="billModal.style.display='none'">⬅️ Back</button>
  </div>
 </div>
 
 <script>
+
 /* ================= SECURITY ================= */
 const TRIAL_PASSWORD="MDT-4829";
 const YEAR1_PASSWORD="MDP-583204";
@@ -138,7 +164,7 @@ function unlockApp(){
 
 function requestPassword(){
  window.open("https://wa.me/"+ADMIN_WHATSAPP+"?text="+encodeURIComponent(
-  "Hello,\nI need Milk Diary password.\n\nDevice ID: "+DEVICE_ID
+  "Hello, I need Milk Diary password.\nDevice ID: "+DEVICE_ID
  ));
 }
 
@@ -154,6 +180,7 @@ function renderCalendar(){
  monthTitle.innerText=current.toLocaleString("default",{month:"long",year:"numeric"});
  calendar.innerHTML="";
  let days=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
+
  for(let i=1;i<=days;i++){
   let d=new Date(current.getFullYear(),current.getMonth(),i);
   let el=document.createElement("div");
@@ -169,8 +196,10 @@ function renderCalendar(){
   calendar.appendChild(el);
  }
 }
+
 function changeMonth(v){current.setMonth(current.getMonth()+v);renderCalendar();}
 function setMode(m){mode=m;}
+
 function selectDate(d,el){
  document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
  el.classList.add("active");
@@ -191,6 +220,7 @@ function saveNot(){
  localStorage.MILK_DATA=JSON.stringify(data);
  renderCalendar();
 }
+
 function saveExtra(){
  if(!selectedDate)return;
  let k=key(selectedDate);
@@ -210,6 +240,7 @@ function openAdmin(){
  milkmanInput.value=localStorage.milkman||"";
  adminModal.style.display="block";
 }
+
 function saveAdmin(){
  localStorage.custPlot=custPlot.value;
  localStorage.custAddr=custAddr.value;
@@ -226,6 +257,7 @@ function viewMonthBill(){
  let e=new Date(current.getFullYear(),current.getMonth()+1,0);
  buildBill(s,e);
 }
+
 function viewPeriodBill(){
  if(!from||!to)return alert("Select dates");
  buildBill(from,to);
@@ -239,19 +271,12 @@ function buildBill(s,e){
  let base=daily*days;
 
  let extra=0,not=0;
- let extraLines="",notLines="";
 
  for(let k in data){
   let d=new Date(k);
   if(d>=s && d<=e){
-   if(data[k].extra){
-    extra+=data[k].extra;
-    extraLines+=fmt(d)+" : "+data[k].extra+" pkt\n";
-   }
-   if(data[k].not){
-    not+=data[k].not;
-    notLines+=fmt(d)+" : "+data[k].not+" pkt\n";
-   }
+   extra+=data[k].extra||0;
+   not+=data[k].not||0;
   }
  }
 
@@ -260,58 +285,30 @@ function buildBill(s,e){
  let total=milkAmt+service;
 
  billPreview.innerText=
-`Milk Bill Details
+`Milk Diary Bill
 
-Plot No. ${localStorage.custPlot||""}
-${localStorage.custAddr||""}
+Period: ${fmt(s)} to ${fmt(e)}
 
-Period:
-${fmt(s)} to ${fmt(e)}
+Total Milk: ${finalMilk} pkt
+Milk Amount: ₹${milkAmt}
+Service Charge: ₹${service}
 
-Daily Milk:
-${daily} pkt × ${days} days = ${base} pkt
+Grand Total: ₹${total}
 
-Extra Milk Purchased:
-${extraLines || "Nil"}
-                        ----------
-                          ${extra} pkt
-                        ----------
-
-Not Supplied Milk:
-${notLines || "Nil"}
-                        ----------
-                          ${not} pkt
-                        ----------
-
---------------------
-Total Milk:
-${base} + ${extra} - ${not} = ${finalMilk} pkt
-
-Milk Rate:
-₹${rate} per pkt
-
-Milk Amount:
-${finalMilk} × ${rate} = ₹${milkAmt}
-
-Service Charge (One Time):
-₹${service}
-
---------------------
-Grand Total:
-₹${total}
-
-- Powered by Milk Diary iniyan.talkies`;
-
+Powered by Milk Diary`;
  billModal.style.display="block";
 }
 
 function sendToMilkman(){
  window.open("https://wa.me/91"+localStorage.milkman+"?text="+encodeURIComponent(billPreview.innerText));
 }
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+
+/* ================= SERVICE WORKER ================= */
+if("serviceWorker" in navigator){
+ navigator.serviceWorker.register("sw.js");
 }
+
 </script>
+
 </body>
 </html>
