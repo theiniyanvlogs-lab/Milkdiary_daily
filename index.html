@@ -124,11 +124,19 @@ async function unlockApp(){
  let pwd = unlockPwd.value.trim();
  if(!pwd) return alert("Enter password");
 
- // Already unlocked on this phone
- if(localStorage.MDT_UNLOCKED === pwd){
-   startApp("Active");
-   return;
- }
+ // Already unlocked on this phone — but still verify registry
+if(localStorage.MDT_UNLOCKED === pwd){
+   let registry = await fetch(REGISTRY_URL + "?t=" + Date.now()).then(r=>r.json());
+   
+   // If registry still allows this password → open
+   if(registry[pwd] && registry[pwd].used === false){
+       startApp("Active");
+       return;
+   }
+   
+   // If registry says password is used → clear local bypass
+   localStorage.removeItem("MDT_UNLOCKED");
+}
 
  // Load registry
  let registry = await fetch(REGISTRY_URL + "?t=" + Date.now()).then(r=>r.json());
